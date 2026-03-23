@@ -8,3 +8,12 @@ export type GraphEmail = {
   bodyHtml: string;
   recipients: Email[];
 };
+
+export class GraphApiError extends Error {
+  cause?: any;
+  constructor(message: string, cause?: any) {
+    super(message);
+    this.name = "GraphApiError";
+    this.cause = cause;
+  }
+}

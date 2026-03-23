@@ -26,6 +26,9 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1014.0",
+    "@aws-sdk/client-sqs": "^3.1014.0",
+    "@azure/identity": "^4.13.1",
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "csvtojson": "^2.0.14",
     "dayjs": "^1.11.20",

@@ -1,27 +1,43 @@
-import type { Client } from "@microsoft/microsoft-graph-client";
-import type { Email, GraphEmail } from "./types";
-import type { Message } from "@microsoft/microsoft-graph-types";
+import { ClientSecretCredential } from "@azure/identity";
+import { TokenCredentialAuthenticationProvider } from "@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials";
+import { Client } from "@microsoft/microsoft-graph-client";
+import type { Drive, Site } from "@microsoft/microsoft-graph-types";
+import { GraphApiError } from "./types";
+import { config } from "../config";
 
-export async function sendEmail(client: Client, fromEmail: Email, message: GraphEmail) {
-  console.log(`[ sendEmail ] sending email to ${message.recipients}`);
-  const graphMessage: Message = {
-    subject: message.subject,
-    body: {
-      contentType: "html",
-      content: message.bodyHtml,
-    },
-    toRecipients: message.recipients.map((email) => ({ emailAddress: { address: email } })),
-  };
-  return await sendGraphEmail(client, fromEmail, graphMessage);
+export async function getDriveId(client: Client, host: string, siteId: string) {
+  console.info(`[ getDriveId ] getting GraphAPI ID for site: ${siteId}`);
+  const siteInfo = (await client.api(`/sites/${host}:/sites/${siteId}`).get()) as Site;
+
+  if (!siteInfo.id) {
+    throw new GraphApiError("graphGetSiteInfo didn't return site ID");
+  }
+
+  console.info(`[ getDriveId ] getting drive for site: ${siteId}`);
+  const drive = (await client.api(`/sites/${siteId}/drive`).get()) as Drive;
+
+  if (!drive.id) {
+    throw new GraphApiError("graphGetDrive didn't return drive ID");
+  }
+  return drive.id;
 }
 
-export async function sendGraphEmail(client: Client, userMail: string, message: Message) {
-  console.log(`[ sendEmailGraphApi ] sending emails with GraphAPI`);
+export async function getGraphClient() {
+  console.log(`[ getGraphClient ] getting a graph client`);
 
-  const requestBody = {
-    message,
-    saveToSentItems: false, // Indicates whether to save the message in Sent Items. Specify it only if the parameter is false; default is true. Optional.
-  };
-  // If successful, this method returns 202 Accepted response code. It doesn't return anything in the response body.
-  await client.api(`users/${userMail}/sendMail`).post(requestBody);
+  const credential = new ClientSecretCredential(
+    config.tenantId,
+    config.clientId,
+    config.clientSecret,
+  );
+
+  const authProvider = new TokenCredentialAuthenticationProvider(credential, {
+    // The client credentials flow requires that you request the
+    // /.default scope, and pre-configure your permissions on the
+    // app registration in Azure. An administrator must grant consent
+    // to those permissions beforehand.
+    scopes: ["https://graph.microsoft.com/.default"],
+  });
+
+  return Client.initWithMiddleware({ authProvider });
 }

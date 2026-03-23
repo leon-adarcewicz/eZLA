@@ -10,7 +10,8 @@ import type {
   Xpertis,
 } from "./types";
 import { type GraphEmail } from "./ms_graphAPI/types";
-import { sendEmail } from "./ms_graphAPI";
+import { sendEmail } from "./ms_graphAPI/email_svc";
+import { config } from "./config";
 
 export function returnConfirmedEnv(env: string | undefined, envName: string): string {
   console.info("[ returnConfirmedEnv ] function started");
@@ -25,7 +26,6 @@ export function returnConfirmedEnv(env: string | undefined, envName: string): st
 export async function returnEzlaObjs(props: EzlaChecker): Promise<EZLA[]> {
   console.log("[ returnEzlaObj ] checking file structure");
   const firstElement = props.array.find(Boolean);
-  const senderEmail = returnConfirmedEnv(process.env.SENDER_MAIL, "SENDER_MAIL");
 
   if (
     Object.keys(firstElement).includes("PESEL") &&
@@ -59,7 +59,7 @@ Please check the file structure and try again.
 Best regards,<br />
 MGS-CI team`,
     };
-    await sendEmail(props.client, senderEmail, email);
+    await sendEmail(props.client, config.senderMail, email);
     throw new Error(
       `[ returnEzlaObj ] Couldn't find one of rows: PESEL | Status zaświadczenia | Data początku niezdolności | Data końca niezdolności | Seria i numer paszportu | Data urodzenia osoby pod opieką`,
     );
@@ -70,7 +70,6 @@ export async function returnXpertisObjs(props: EzlaChecker): Promise<Xpertis[]> 
   console.log("[ returnXpertisObjs ] checking file structure");
 
   const firstElement = props.array.find(Boolean);
-  const senderEmail = returnConfirmedEnv(process.env.SENDER_MAIL, "SENDER_MAIL");
 
   if (
     Object.keys(firstElement).includes("PESEL") &&
@@ -97,7 +96,7 @@ Please check the file structure and try again.
 Best regards,<br />
 MGS-CI team`,
     };
-    await sendEmail(props.client, senderEmail, email);
+    await sendEmail(props.client, config.senderMail, email);
     throw new Error(
       `[ returnXpertisObjs ] Couldn't find one of rows: PESEL | Nr teczki | Paszport`,
     );
@@ -108,7 +107,6 @@ export async function returnAsistarObjs(props: EzlaChecker): Promise<Asistar[]> 
   console.log("[ returnAsistarObjs ] checking file structure");
 
   const firstElement = props.array.find(Boolean);
-  const senderEmail = returnConfirmedEnv(process.env.SENDER_MAIL, "SENDER_MAIL");
 
   if (
     Object.keys(firstElement).includes("Nr_teczki") &&
@@ -138,7 +136,7 @@ Please check the file structure and try again.
 Best regards,<br />
 MGS-CI team`,
     };
-    await sendEmail(props.client, senderEmail, email);
+    await sendEmail(props.client, config.senderMail, email);
     throw new Error(
       `[ returnAsistarObjs ] Couldn't find one of rows: Nr_teczki | imie [varchar(200)] | nazwisko [varchar(200)] | login [varchar(200)] | p2_login [varchar(200)]`,
     );
@@ -329,4 +327,17 @@ export function isCaregiverLeave(value: string): "YES" | "NO" {
   } else {
     return "NO";
   }
+}
+
+export function checkIfNoRestrictedChars(string: string) {
+  // should error if name contains any of restricted characters: " * : < > ? / \ |
+  // https://learn.microsoft.com/en-us/sharepoint/dev/sp-add-ins/validating-file-names-in-sharepoint-online
+  console.info(`[ checkIfNoRestrictedChars ] checking: ${string}`);
+
+  const restrictedChars = /[\\/:*?"<>|]/g;
+  const matches = string.match(restrictedChars);
+  if (matches) {
+    throw new Error(`[ checkIfNoRestrictedChars ] found restricted characters: ${matches}`);
+  }
+  return string;
 }

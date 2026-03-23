@@ -11,7 +11,294 @@ import {
   //   isAwsDynamoError,
   generateTable,
   generateEzlaFileName,
-  returnTableName,
+  // returnTableName,
   generateHewHireTable,
-  returnConfirmedEnv,
+  checkIfNoRestrictedChars,
 } from "./utils";
+import { pushSickLeavesToSqs } from "./aws/sqs_svc";
+// import { DynamoDBStreamEvent, SQSEvent } from 'aws-lambda';
+import { type EzlaChecker, SickLeaveByTL } from "./types";
+// import {
+//   InitializeAWSDynamoClient,
+//   dbPushSickLeave,
+//   getRecordByPk,
+//   putStats,
+// } from "./aws/dynamo_svc";
+// import { unmarshall } from "@aws-sdk/util-dynamodb";
+import { type GraphEmail } from "./ms_graphAPI/types";
+import { getFileContent, getFolderFiles, moveFileToFolder } from "./ms_graphAPI/file_svc";
+import { getDriveId, getGraphClient } from "./ms_graphAPI";
+import { getOrCreateFolderByName } from "./ms_graphAPI/folder_svc";
+import { config } from "./config";
+import { sendEmail } from "./ms_graphAPI/email_svc";
+
+const hash = require("object-hash");
+const SAVED_TIME = "5 minutes";
+
+export async function createSickLeaveRecords() {
+  console.log("[ createSickLeaveRecords ] function has been called");
+
+  const client = await getGraphClient();
+  const driveId = await getDriveId(client, config.host, config.siteWebId);
+  const oneStopFolder = await getOrCreateFolderByName(
+    client,
+    driveId,
+    "root",
+    config.mainFolderName,
+  );
+  const reportFolder = await getOrCreateFolderByName(
+    client,
+    driveId,
+    oneStopFolder.id,
+    config.reportFolderName,
+  );
+  const reportRequestFolder = await getOrCreateFolderByName(
+    client,
+    driveId,
+    reportFolder.id,
+    config.requestName,
+  );
+  const reportBackupFolder = await getOrCreateFolderByName(
+    client,
+    driveId,
+    reportRequestFolder.id,
+    config.reportBackupFolderName,
+  );
+  const dataFolder = await getOrCreateFolderByName(
+    client,
+    driveId,
+    oneStopFolder.id,
+    config.dataFolderName,
+  );
+  const dataRequestFolder = await getOrCreateFolderByName(
+    client,
+    driveId,
+    dataFolder.id,
+    config.requestName,
+  );
+  const folderChildren = await getFolderFiles(client, driveId, dataRequestFolder.id);
+
+  //* GET Xpertis file and check structure
+  const ezlaFile = folderChildren.find((x) => x.name?.includes(config.ezlaFileName));
+  if (!ezlaFile) {
+    console.warn("[ createSickLeaveRecords ] No data to process. Closing process");
+    return "No data to process. Closing process";
+  }
+  const ezlaBuffer = await getFileContent(client, driveId, ezlaFile.id!);
+  const csvString = Buffer.from(ezlaBuffer).toString();
+  const objFromCSV = await CsvToJson({ delimiter: "auto" }).fromString(csvString);
+
+  const checker: EzlaChecker = {
+    array: objFromCSV,
+    client: client,
+    receiverMail: config.siteWebId === config.checkSiteWebID ? config.senderMail : config.hrMail,
+  };
+  const ezlaRecords = await returnEzlaObjs(checker);
+
+  //* GET Xpertis file and check structure
+  const xpertisFile = folderChildren.find((x) => x.name?.includes(config.xpertisFileName));
+  if (!xpertisFile) {
+    throw new Error("[ createSickLeaveRecords ] Couldn't find Xpertis file in the folder");
+  }
+
+  const xpertisBuffer = await getFileContent(client, driveId, xpertisFile.id!);
+  const xpertisXlsx = XLSX.read(xpertisBuffer, { type: "buffer" });
+  const xpertisSheetNames = xpertisXlsx.SheetNames;
+
+  if (xpertisSheetNames.length !== 1) {
+    throw new Error("[ createSickLeaveRecords ] Xpertis file contain more that 1 sheet");
+  }
+
+  const xpertisSheetName = xpertisSheetNames.find(Boolean)!; // excel always contains at least 1 sheet
+  console.log(`[ createSickLeaveRecords ] looking for data from ${xpertisSheetName} sheet`);
+  const xpertisSheet = xpertisXlsx.Sheets[xpertisSheetName];
+
+  if (!xpertisSheet) {
+    throw new Error(
+      `[ createSickLeaveRecords ] Couldn't find sheet: ${xpertisSheet} in Xpertis file`,
+    );
+  }
+
+  const xpertisCsvString = XLSX.utils.sheet_to_csv(xpertisSheet);
+
+  const xpertisRawObj = await CsvToJson({ delimiter: "auto" }).fromString(xpertisCsvString);
+  const xpertisChecker: EzlaChecker = {
+    array: xpertisRawObj,
+    client: client,
+    receiverMail: config.hrMail,
+  };
+  const xpertisRecords = await returnXpertisObjs(xpertisChecker);
+
+  //* GET Asistar file and check the structure
+  const asistarFile = folderChildren.find((x) => x.name?.includes(config.asistarFileName));
+  if (!asistarFile) {
+    throw new Error("[ createSickLeaveRecords ] Couldn't find Asistar file in the folder");
+  }
+
+  const asistarBuffer = await getFileContent(client, driveId, asistarFile.id!);
+  const asistarXlsx = XLSX.read(asistarBuffer, { type: "buffer" });
+  const asistarSheetNames = asistarXlsx.SheetNames;
+
+  if (asistarSheetNames.length !== 1)
+    throw new Error("[ createSickLeaveRecords ] Asistar file contain more that 1 sheet");
+
+  const asistarSheetName = asistarSheetNames.find(Boolean)!; // excel always contains at least 1 sheet
+  console.log(`[ createSickLeaveRecords ] looking for data from ${asistarSheetName} sheet`);
+  const asistarSheet = asistarXlsx.Sheets[asistarSheetName];
+
+  if (!asistarSheet) {
+    throw new Error(
+      `[ createSickLeaveRecords ] Couldn't find sheet: ${asistarSheet} in Asistar file`,
+    );
+  }
+
+  const asistarCsvString = XLSX.utils.sheet_to_csv(asistarSheet);
+
+  const asistarRawObj = await CsvToJson({ delimiter: "auto" }).fromString(asistarCsvString);
+  const assistarChecker: EzlaChecker = {
+    array: asistarRawObj,
+    client: client,
+    receiverMail: config.hrMail,
+  };
+  const asistarRecords = await returnAsistarObjs(assistarChecker);
+
+  //* create SickLeave records
+  console.log(`[ createSickLeaveRecords ] creating SickLeave records`);
+  const { fullRecords, incompleteRecords, newHires } = tryCombineRecords(
+    ezlaRecords,
+    xpertisRecords,
+    asistarRecords,
+  );
+
+  //* inform HR about incomplete records
+  if (incompleteRecords.length > 0 || newHires.length > 0) {
+    console.log(
+      `[ createSickLeaveRecords ] Found incomplete records - preparing email to HR team with appropriate information`,
+    );
+
+    const email: GraphEmail = {
+      recipients:
+        config.siteWebId === config.checkSiteWebID ? [config.senderMail] : [config.hrMail],
+      subject: "eZLA - incomplete records",
+      bodyHtml: `Dear team,
+            <br /><br />
+${incompleteRecords.length > 0 && "Please check the records mentioned below and update data or process theme manually:<br /><br />" + generateTable(incompleteRecords) + "<br /><br />"}
+${newHires.length > 0 && "Please update Xpertis file. PUE report contain record/s with pesel/passport ID that we couldn't find into Xpertis file:<br /><br />" + generateHewHireTable(newHires) + "<br /><br />"}
+
+Best regards,<br />
+MGS-CI team`,
+    };
+
+    await sendEmail(client, config.senderMail, email);
+  }
+
+  //* SEND SickLeaves to SQS
+  const groupedAndSorted = groupByPdmAndSortByLastName(fullRecords);
+
+  console.log(`[ createSickLeaveRecords ] sending sick leaves to SQS`);
+  await pushSickLeavesToSqs(groupedAndSorted, config.sqsUrl);
+
+  //* SEND eZLA file to processed folder
+  console.log(`[ createSickLeaveRecords ] moving eZLA files to the Processed folder`);
+  const fileName = generateEzlaFileName(ezlaFile.name!);
+  await moveFileToFolder(
+    client,
+    driveId,
+    ezlaFile.id!,
+    reportBackupFolder.id,
+    checkIfNoRestrictedChars(fileName),
+  );
+
+  console.log("[ createSickLeaveRecords ] files has been moved");
+}
+
+// export async function pushMsgToDynamo(ev: SQSEvent) {
+//   console.log("[ pushMsgToDynamo ] Got messages from SQS. Preparing to push to DynamoDB");
+
+//   const dbClient = InitializeAWSDynamoClient();
+//   const tableName = process.env.DYNAMO_TABLE!;
+
+//   console.log("[ pushMsgToDynamo ] putting records to DynamoDB");
+//   const dynamoPutPromises = ev.Records.map((msg) => {
+//     console.log(`Got message: ${JSON.stringify(msg)}`);
+//     const sickLeave: SickLeaveByTL = SickLeaveByTL.parse(JSON.parse(msg.body));
+//     const hashedObj = hash.sha1(sickLeave);
+
+//     return dbPushSickLeave(hashedObj, sickLeave, dbClient, tableName);
+//   });
+
+//   const allResults = await Promise.allSettled(dynamoPutPromises);
+
+//   const errors = allResults.filter((result) => result.status === "rejected");
+
+//   // collect all errors and throw single error message with unique errors only
+//   // this should improve readability
+//   if (errors.length > 0) {
+//     console.warn(`[ pushMsgToDynamo ] got ${errors.length} errors. Preparing error message`);
+//     const allErrorsStringify = errors.map((error) => {
+//       const reason = JSON.parse((error as any).reason);
+
+//       if (isAwsDynamoError(reason)) {
+//         const awsErr = {
+//           name: reason.name,
+//           message: reason.message,
+//         };
+
+//         return JSON.stringify(awsErr);
+//       } else {
+//         return JSON.stringify(reason);
+//       }
+//     });
+
+//     const uniqErrors = Array.from(new Set(allErrorsStringify));
+
+//     throw new Error(uniqErrors.toString());
+//   }
+
+//   console.log("[ pushMsgToDynamo ] pushed all messages");
+// }
+
+// export async function sendMsgToTl (ev: DynamoDBStreamEvent) {
+//     console.log(`[ sendMsgToTl ] Sending message to TL`);
+//     console.log(ev)
+
+//     if(ev.Records.length !== 1) throw new Error(`[ sendMsgToTl ] expected to receive 1 DynamoDb records, but got ${ev.Records.length}`)
+
+//     const streamRecord = ev.Records[0]
+//     //  finish Lambda execution if the event is not INSERT new item
+//     if(streamRecord.eventName !== "INSERT") {
+//         console.warn(`[ sendMsgToTl ] It's not the INSERT event. Finishing the function`);
+//         return "OK"
+//     }
+
+//     const environment = process.env.ENV!
+//     const graphClient = await getGraphClientSvc();
+
+//     const dbClient = InitializeAWSDynamoClient();
+
+//     console.log("[ sendMsgToTl ] pulling record from DynamoDB");
+//     const arn = streamRecord.eventSourceARN!
+//     const tableName = returnTableName(arn)
+//     const pk = streamRecord.dynamodb?.Keys?.pk.S!
+
+//     const dynamoRecord = await getRecordByPk(pk, tableName, dbClient)
+
+//     console.log("[ sendMsgToTl ] extracting SickLeaves and sending messages");
+//     const sl = SickLeaveByTL.parse(unmarshall(dynamoRecord.Item!).data)
+
+//     const email: GraphEmail = {
+//         recipients: environment === "prod" ? [sl.mail,HR_MAIL] : [ONE_STOP_MAIL],
+//         subject: "eZLA - team sick leaves",
+//         bodyHtml: `Dear ${sl.firstName},<br /><br />Please find the list of your team members sick leaves:<br /><br />${generateTable(sl.team)}<br/><br />Best regards,<br />Local HR Team`
+//     }
+
+//     await sendEmail(graphClient, ONE_STOP_MAIL, email)
+//     console.log("[ sendMsgToTl ] all messages sent successfully");
+
+//     //* SAVE statistics
+//     const statsTable = process.env.STATS_TABLE_NAME!;
+//     const requestName = "eZLA";
+
+//     await putStats(statsTable, pk, requestName, dbClient, SAVED_TIME)
+//     console.log("[ sendMsgToTl ] stats pushed")
+// }
