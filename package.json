@@ -4,7 +4,7 @@
   "description": "Backend process automation to deliver information about employees sick leaves. Hosted in AWS and uses Microsoft Graph API to fetch data about employees and their sick leaves from SharePoint site.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "dev": "tsx src/index.ts"
   },
   "repository": {
@@ -21,7 +21,11 @@
   "homepage": "https://github.com/leon-adarcewicz/eZLA#readme",
   "devDependencies": {
     "@microsoft/microsoft-graph-types": "^2.43.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.5.0",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
