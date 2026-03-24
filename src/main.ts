@@ -5,33 +5,20 @@ import XLSX from "xlsx";
 import {
   tryCombineRecords,
   groupByPdmAndSortByLastName,
-  //   isAwsDynamoError,
   generateTable,
   generateEzlaFileName,
-  // returnTableName,
   generateHewHireTable,
   checkIfNoRestrictedChars,
   buildErrorEmailBody,
 } from "./utils";
 import { pushSickLeavesToSqs } from "./aws/sqs_svc";
-// import { DynamoDBStreamEvent, SQSEvent } from 'aws-lambda';
-import { asistar, ezla, SickLeaveByTL, xpertis } from "./types";
-// import {
-//   InitializeAWSDynamoClient,
-//   dbPushSickLeave,
-//   getRecordByPk,
-//   putStats,
-// } from "./aws/dynamo_svc";
-// import { unmarshall } from "@aws-sdk/util-dynamodb";
+import { asistar, ezla, xpertis } from "./types";
 import { type GraphEmail } from "./ms_graphAPI/types";
 import { getFileContent, getFolderFiles, moveFileToFolder } from "./ms_graphAPI/file_svc";
 import { getDriveId, getGraphClient } from "./ms_graphAPI";
 import { getOrCreateFolderByName } from "./ms_graphAPI/folder_svc";
 import { config } from "./config";
 import { sendEmail } from "./ms_graphAPI/email_svc";
-
-const hash = require("object-hash");
-const SAVED_TIME = "5 minutes";
 
 export async function createSickLeaveRecords() {
   console.log("[ createSickLeaveRecords ] function has been called");
@@ -82,7 +69,10 @@ export async function createSickLeaveRecords() {
     console.warn("[ createSickLeaveRecords ] No data to process. Closing process");
     return "No data to process. Closing process";
   }
-  const ezlaBuffer = await getFileContent(client, driveId, ezlaFile.id!);
+  if (!ezlaFile.name || !ezlaFile.id) {
+    throw new Error("[ createSickLeaveRecords ] Found ezla file with missing name or ID");
+  }
+  const ezlaBuffer = await getFileContent(client, driveId, ezlaFile.id);
   const csvString = Buffer.from(ezlaBuffer).toString();
   const objFromCSV = await CsvToJson({ delimiter: "auto" }).fromString(csvString);
 
@@ -225,63 +215,17 @@ MGS-CI team`,
 
   //* SEND eZLA file to processed folder
   console.log(`[ createSickLeaveRecords ] moving eZLA files to the Processed folder`);
-  const fileName = generateEzlaFileName(ezlaFile.name!);
+  const fileName = generateEzlaFileName(ezlaFile.name);
   await moveFileToFolder(
     client,
     driveId,
-    ezlaFile.id!,
+    ezlaFile.id,
     reportBackupFolder.id,
     checkIfNoRestrictedChars(fileName),
   );
 
   console.log("[ createSickLeaveRecords ] files has been moved");
 }
-
-// export async function pushMsgToDynamo(ev: SQSEvent) {
-//   console.log("[ pushMsgToDynamo ] Got messages from SQS. Preparing to push to DynamoDB");
-
-//   const dbClient = InitializeAWSDynamoClient();
-//   const tableName = process.env.DYNAMO_TABLE!;
-
-//   console.log("[ pushMsgToDynamo ] putting records to DynamoDB");
-//   const dynamoPutPromises = ev.Records.map((msg) => {
-//     console.log(`Got message: ${JSON.stringify(msg)}`);
-//     const sickLeave: SickLeaveByTL = SickLeaveByTL.parse(JSON.parse(msg.body));
-//     const hashedObj = hash.sha1(sickLeave);
-
-//     return dbPushSickLeave(hashedObj, sickLeave, dbClient, tableName);
-//   });
-
-//   const allResults = await Promise.allSettled(dynamoPutPromises);
-
-//   const errors = allResults.filter((result) => result.status === "rejected");
-
-//   // collect all errors and throw single error message with unique errors only
-//   // this should improve readability
-//   if (errors.length > 0) {
-//     console.warn(`[ pushMsgToDynamo ] got ${errors.length} errors. Preparing error message`);
-//     const allErrorsStringify = errors.map((error) => {
-//       const reason = JSON.parse((error as any).reason);
-
-//       if (isAwsDynamoError(reason)) {
-//         const awsErr = {
-//           name: reason.name,
-//           message: reason.message,
-//         };
-
-//         return JSON.stringify(awsErr);
-//       } else {
-//         return JSON.stringify(reason);
-//       }
-//     });
-
-//     const uniqErrors = Array.from(new Set(allErrorsStringify));
-
-//     throw new Error(uniqErrors.toString());
-//   }
-
-//   console.log("[ pushMsgToDynamo ] pushed all messages");
-// }
 
 // export async function sendMsgToTl (ev: DynamoDBStreamEvent) {
 //     console.log(`[ sendMsgToTl ] Sending message to TL`);

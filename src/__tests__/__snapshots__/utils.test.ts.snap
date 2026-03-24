@@ -7,9 +7,3 @@ exports[`buildErrorEmailBody builds correct message for ezla reason 1`] = `"Dear
 exports[`buildErrorEmailBody builds correct message for xpertis reason 1`] = `"Dear team,<br /><br />The process couldn't find one of necessary columns in the Xpertis file (PESEL | Nr teczki | Paszport). Please check the file structure and try again.<br /><br />Best regards,<br />MGS-CI team"`;
 
 exports[`generateHewHireTable generates table with multiple rows for multiple EZLA records 1`] = `"<table border="1" cellpadding="5"><tr style="background-color: #ddd; font-weight: bold"><th>Pesel</th><th>Passport</th></tr><tr><td>12345678901</td><td>AB123456</td></tr><tr><td>98765432109</td><td>CD789012</td></tr></table>"`;
-
-exports[`generateHewHireTable generates table with single row for one EZLA record 1`] = `"<table border="1" cellpadding="5"><tr style="background-color: #ddd; font-weight: bold"><th>Pesel</th><th>Passport</th></tr><tr><td>12345678901</td><td>AB123456</td></tr></table>"`;
-
-exports[`generateHewHireTable handles special characters in pesel and passportID 1`] = `"<table border="1" cellpadding="5"><tr style="background-color: #ddd; font-weight: bold"><th>Pesel</th><th>Passport</th></tr><tr><td>12345678901<>&</td><td>AB123456"'</td></tr></table>"`;
-
-exports[`generateHewHireTable returns table with headers only when given empty array 1`] = `"<table border="1" cellpadding="5"><tr style="background-color: #ddd; font-weight: bold"><th>Pesel</th><th>Passport</th></tr></table>"`;

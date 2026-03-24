@@ -1,6 +1,7 @@
 import {
   ConditionalCheckFailedException,
   DynamoDBClient,
+  DynamoDBServiceException,
   GetItemCommand,
   PutItemCommand,
   type GetItemInput,
@@ -9,6 +10,16 @@ import {
 import { SickLeaveByTL } from "../../types";
 import dayjs from "dayjs";
 import { config } from "../../config";
+
+export function isAwsDynamoError(obj: unknown): obj is DynamoDBServiceException {
+  return (
+    obj !== null &&
+    obj !== undefined &&
+    typeof obj === "object" &&
+    (obj as DynamoDBServiceException).name !== undefined &&
+    (obj as DynamoDBServiceException).message !== undefined
+  );
+}
 
 export function InitializeAWSDynamoClient(): DynamoDBClient {
   console.log(`[ InitializeAWSDynamoClient ] creating DynamoDB client`);
