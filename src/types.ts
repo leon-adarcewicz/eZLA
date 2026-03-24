@@ -1,37 +1,59 @@
 import { Client } from "@microsoft/microsoft-graph-client";
 import { z } from "zod";
 import type { Email } from "./ms_graphAPI/types";
+import { isCaregiverLeave } from "./utils";
 
-const EZLA = z.object({
-  pesel: z.string(),
-  status: z.string(),
-  startDate: z.string(),
-  endDate: z.string(),
-  passportID: z.string(),
-  caregiverLeave: z.string(),
-});
+export const ezla = z
+  .object({
+    PESEL: z.string(),
+    "Status zaświadczenia": z.string(),
+    "Data początku niezdolności": z.string(),
+    "Data końca niezdolności": z.string(),
+    "Seria i numer paszportu": z.string(),
+    "Data urodzenia osoby pod opieką": z.string(),
+  })
+  .transform((data) => ({
+    pesel: data.PESEL,
+    status: data["Status zaświadczenia"].toUpperCase(),
+    startDate: data["Data początku niezdolności"],
+    endDate: data["Data końca niezdolności"],
+    passportID: data["Seria i numer paszportu"].replaceAll(" ", ""),
+    caregiverLeave: isCaregiverLeave(data["Data urodzenia osoby pod opieką"]),
+  }));
 
-export type EZLA = z.infer<typeof EZLA>;
+export type EZLA = z.infer<typeof ezla>;
 
-export type EzlaChecker = {
-  array: any[];
-  client: Client;
-  receiverMail: Email;
-};
+export const xpertis = z
+  .object({
+    PESEL: z.string(),
+    Paszport: z.string(),
+    "Nr teczki": z.string(),
+  })
+  .transform((data) => ({
+    fmno: data["Nr teczki"],
+    pesel: data.PESEL,
+    passport: data["Paszport"].replaceAll(" ", ""),
+  }));
 
-export type Xpertis = {
-  fmno: string;
-  pesel: string;
-  passport: string;
-};
+export type Xpertis = z.infer<typeof xpertis>;
 
-export type Asistar = {
-  fmno: string;
-  firstName: string;
-  lastName: string;
-  mail: Email;
-  pdmMail: string;
-};
+export const asistar = z
+  .object({
+    Nr_teczki: z.string(),
+    "imie [varchar(200)]": z.string(),
+    "nazwisko [varchar(200)]": z.string(),
+    "login [varchar(200)]": z.string(),
+    "p1_login [varchar(200)]": z.string(),
+  })
+  .transform((data) => ({
+    fmno: data["Nr_teczki"],
+    firstName: data["imie [varchar(200)]"],
+    lastName: data["nazwisko [varchar(200)]"],
+    mail: data["login [varchar(200)]"],
+    pdmMail: data["p1_login [varchar(200)]"],
+  }));
+
+export type Asistar = z.infer<typeof asistar>;
 
 const SickLeave = z.object({
   fmno: z.string(),

@@ -3,15 +3,11 @@ import type {
   Asistar,
   CombinedResults,
   EZLA,
-  EzlaChecker,
   SickLeave,
   SickLeaveByTL,
   SickLeaveWithoutTL,
   Xpertis,
 } from "./types";
-import { type GraphEmail } from "./ms_graphAPI/types";
-import { sendEmail } from "./ms_graphAPI/email_svc";
-import { config } from "./config";
 
 export function returnConfirmedEnv(envName: string): string {
   const env = process.env[envName];
@@ -22,124 +18,31 @@ export function returnConfirmedEnv(envName: string): string {
   }
 }
 
-export async function returnEzlaObjs(props: EzlaChecker): Promise<EZLA[]> {
-  console.log("[ returnEzlaObj ] checking file structure");
-  const firstElement = props.array.find(Boolean);
-
-  if (
-    Object.keys(firstElement).includes("PESEL") &&
-    Object.keys(firstElement).includes("Status zaświadczenia") &&
-    Object.keys(firstElement).includes("Data początku niezdolności") &&
-    Object.keys(firstElement).includes("Data końca niezdolności") &&
-    Object.keys(firstElement).includes("Seria i numer paszportu") &&
-    Object.keys(firstElement).includes("Data urodzenia osoby pod opieką")
-  ) {
-    return props.array
-      .map((obj) => {
-        return {
-          pesel: obj.PESEL,
-          status: obj["Status zaświadczenia"].toUpperCase(),
-          startDate: obj["Data początku niezdolności"],
-          endDate: obj["Data końca niezdolności"],
-          passportID: obj["Seria i numer paszportu"].replaceAll(" ", ""),
-          caregiverLeave: isCaregiverLeave(obj["Data urodzenia osoby pod opieką"]),
-        };
-      })
-      .filter((obj) => obj.status !== "ANULOWANE"); // ezla records with status "ANULOWANE" shouldn't be reflected into reports
-  } else {
-    const email: GraphEmail = {
-      recipients: [props.receiverMail],
-      subject: "eZLA - wrong ezla file structure",
-      bodyHtml: `Dear team,
-            <br /><br />
-The process couldn't find one of necessary columns in the eZLA file (PESEL | Status zaświadczenia | Data początku niezdolności | Data końca niezdolności | Seria i numer paszportu | Data urodzenia osoby pod opieką). 
-Please check the file structure and try again.
-
-Best regards,<br />
-MGS-CI team`,
-    };
-    await sendEmail(props.client, config.senderMail, email);
-    throw new Error(
-      `[ returnEzlaObj ] Couldn't find one of rows: PESEL | Status zaświadczenia | Data początku niezdolności | Data końca niezdolności | Seria i numer paszportu | Data urodzenia osoby pod opieką`,
-    );
+export function buildErrorEmailBody(reason: "ezla" | "xpertis" | "asistar"): string {
+  let reasonText: string;
+  switch (reason) {
+    case "ezla":
+      reasonText =
+        "The process couldn't find one of necessary columns in the eZLA file " +
+        "(PESEL | Status zaświadczenia | Data początku niezdolności | Data końca niezdolności | Seria i numer paszportu | Data urodzenia osoby pod opieką). " +
+        "Please check the file structure and try again.";
+      break;
+    case "xpertis":
+      reasonText =
+        "The process couldn't find one of necessary columns in the Xpertis file " +
+        "(PESEL | Nr teczki | Paszport). " +
+        "Please check the file structure and try again.";
+      break;
+    case "asistar":
+      reasonText =
+        "The process couldn't find one of necessary columns in the Asistar file " +
+        "(Nr_teczki | imie [varchar(200)] | nazwisko [varchar(200)] | login [varchar(200)] | p2_login [varchar(200)]). " +
+        "Please check the file structure and try again.";
+      break;
+    default:
+      reasonText = `${reason satisfies never}`;
   }
-}
-
-export async function returnXpertisObjs(props: EzlaChecker): Promise<Xpertis[]> {
-  console.log("[ returnXpertisObjs ] checking file structure");
-
-  const firstElement = props.array.find(Boolean);
-
-  if (
-    Object.keys(firstElement).includes("PESEL") &&
-    Object.keys(firstElement).includes("Paszport") &&
-    Object.keys(firstElement).includes("Nr teczki")
-  ) {
-    const anyWhitespaceReg = /\s/g;
-    return props.array.map((obj) => {
-      return {
-        fmno: obj["Nr teczki"],
-        pesel: obj.PESEL,
-        passport: obj.Paszport.replace(anyWhitespaceReg, ""),
-      };
-    });
-  } else {
-    const email: GraphEmail = {
-      recipients: [props.receiverMail],
-      subject: "eZLA - wrong ezla file structure",
-      bodyHtml: `Dear team,
-            <br /><br />
-The process couldn't find one of necessary columns in the Xpertis file (PESEL | Nr teczki | Paszport). 
-Please check the file structure and try again.
-
-Best regards,<br />
-MGS-CI team`,
-    };
-    await sendEmail(props.client, config.senderMail, email);
-    throw new Error(
-      `[ returnXpertisObjs ] Couldn't find one of rows: PESEL | Nr teczki | Paszport`,
-    );
-  }
-}
-
-export async function returnAsistarObjs(props: EzlaChecker): Promise<Asistar[]> {
-  console.log("[ returnAsistarObjs ] checking file structure");
-
-  const firstElement = props.array.find(Boolean);
-
-  if (
-    Object.keys(firstElement).includes("Nr_teczki") &&
-    Object.keys(firstElement).includes("imie [varchar(200)]") &&
-    Object.keys(firstElement).includes("nazwisko [varchar(200)]") &&
-    Object.keys(firstElement).includes("login [varchar(200)]") &&
-    Object.keys(firstElement).includes("p1_login [varchar(200)]")
-  ) {
-    return props.array.map((obj) => {
-      return {
-        fmno: obj["Nr_teczki"],
-        firstName: replaceDiacriticsAndPolishChars(obj["imie [varchar(200)]"]),
-        lastName: replaceDiacriticsAndPolishChars(obj["nazwisko [varchar(200)]"]),
-        mail: obj["login [varchar(200)]"].toLowerCase(),
-        pdmMail: obj["p1_login [varchar(200)]"].toLowerCase(),
-      };
-    });
-  } else {
-    const email: GraphEmail = {
-      recipients: [props.receiverMail],
-      subject: "eZLA - wrong ezla file structure",
-      bodyHtml: `Dear team,
-            <br /><br />
-The process couldn't find one of necessary columns in the Xpertis file (Nr_teczki | imie [varchar(200)] | nazwisko [varchar(200)] | login [varchar(200)] | p2_login [varchar(200)]). 
-Please check the file structure and try again.
-
-Best regards,<br />
-MGS-CI team`,
-    };
-    await sendEmail(props.client, config.senderMail, email);
-    throw new Error(
-      `[ returnAsistarObjs ] Couldn't find one of rows: Nr_teczki | imie [varchar(200)] | nazwisko [varchar(200)] | login [varchar(200)] | p2_login [varchar(200)]`,
-    );
-  }
+  return `Dear team,<br /><br />${reasonText}<br /><br />Best regards,<br />MGS-CI team`;
 }
 
 export function tryCombineRecords(
@@ -161,67 +64,59 @@ export function tryCombineRecords(
   const newHires: EZLA[] = [];
 
   ezla.forEach((obj, i) => {
-    const wipObj = {
-      status: structuredClone(obj.status),
-      startDate: structuredClone(obj.startDate),
-      endDate: structuredClone(obj.endDate),
-      caregiverLeave: structuredClone(obj.caregiverLeave),
-    };
-
     console.log("[ tryCombineRecords ] searching for Xpertis record");
     const xpertisObj = xpertis.find(
       (x) =>
         (x.pesel !== "" && x.pesel === obj.pesel) ||
         (x.passport !== "" && x.passport === obj.passportID),
     );
-    const withFMNO = Object.assign(wipObj, { fmno: xpertisObj?.fmno });
 
     console.log("[ tryCombineRecords ] searching for Asistar records");
     // find colleague from Asistar file
-    const asistarRecord = asistar.find((el) => el.fmno === withFMNO.fmno);
+    const asistarRecord = asistar.find((el) => el.fmno === xpertisObj?.fmno);
     // find colleague's Team Leader
     const asistarPDM = asistar.find((el) => el.mail === asistarRecord?.pdmMail);
 
     console.log(`[ tryCombineRecords ] creating SickLeave record nr: ${i}`);
-    if (asistarRecord && asistarPDM && withFMNO.fmno) {
-      const record = {
-        fmno: withFMNO.fmno,
+    if (asistarRecord && asistarPDM && xpertisObj?.fmno) {
+      const record: SickLeave = {
+        fmno: xpertisObj?.fmno,
         firstName: asistarRecord.firstName,
         lastName: asistarRecord.lastName,
         mail: asistarRecord.mail,
-        startDate: withFMNO.startDate,
-        endDate: withFMNO.endDate,
+        startDate: structuredClone(obj.startDate),
+        endDate: structuredClone(obj.endDate),
         pdmMail: asistarPDM.mail,
         pdmFirstName: asistarPDM.firstName,
         pdmLastName: asistarPDM.lastName,
-        caregiverLeave: withFMNO.caregiverLeave,
+        caregiverLeave: structuredClone(obj.caregiverLeave),
       };
       fullRecords.push(record);
-    } else if (asistarRecord && withFMNO.fmno) {
+    } else if (asistarRecord && xpertisObj?.fmno) {
       console.warn(
-        `[ tryCombineRecords ] couldn't find PDM data for colleague with FMNO: ${withFMNO.fmno}`,
+        `[ tryCombineRecords ] couldn't find PDM data for colleague with FMNO: ${xpertisObj?.fmno}`,
       );
-      const record = {
-        fmno: withFMNO.fmno,
+      const record: SickLeaveWithoutTL = {
+        fmno: xpertisObj?.fmno,
         firstName: asistarRecord.firstName,
         lastName: asistarRecord.lastName,
         mail: asistarRecord.mail,
-        startDate: withFMNO.startDate,
-        endDate: withFMNO.endDate,
+        startDate: structuredClone(obj.startDate),
+        endDate: structuredClone(obj.endDate),
         pdmMail: undefined,
         pdmFirstName: undefined,
         pdmLastName: undefined,
-        caregiverLeave: withFMNO.caregiverLeave,
+        caregiverLeave: structuredClone(obj.caregiverLeave),
       };
       incompleteRecords.push(record);
-    } else if (!withFMNO.fmno) {
+    } else if (xpertisObj?.fmno === undefined) {
       console.warn(
         `[ tryCombineRecords ] found record with empty FMNO - Xpertis file should be updated`,
       );
       newHires.push(obj);
     } else {
       throw new Error(
-        `[ tryCombineRecords ] couldn't find one of necessary records: asistarColleague OR asistarPDM, for colleague with FMNO: ${withFMNO.fmno}`,
+        `[ tryCombineRecords ] couldn't find one of necessary records: asistarColleague OR asistarPDM, for colleague with FMNO: ${xpertisObj?.fmno}`,
       );
     }
   });

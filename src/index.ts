@@ -5,19 +5,17 @@ import XLSX from "xlsx";
 import {
   tryCombineRecords,
   groupByPdmAndSortByLastName,
-  returnAsistarObjs,
-  returnEzlaObjs,
-  returnXpertisObjs,
   //   isAwsDynamoError,
   generateTable,
   generateEzlaFileName,
   // returnTableName,
   generateHewHireTable,
   checkIfNoRestrictedChars,
+  buildErrorEmailBody,
 } from "./utils";
 import { pushSickLeavesToSqs } from "./aws/sqs_svc";
 // import { DynamoDBStreamEvent, SQSEvent } from 'aws-lambda';
-import { type EzlaChecker, SickLeaveByTL } from "./types";
+import { asistar, ezla, SickLeaveByTL, xpertis } from "./types";
 // import {
 //   InitializeAWSDynamoClient,
 //   dbPushSickLeave,
@@ -88,12 +86,23 @@ export async function createSickLeaveRecords() {
   const csvString = Buffer.from(ezlaBuffer).toString();
   const objFromCSV = await CsvToJson({ delimiter: "auto" }).fromString(csvString);
 
-  const checker: EzlaChecker = {
-    array: objFromCSV,
-    client: client,
-    receiverMail: config.siteWebId === config.checkSiteWebID ? config.senderMail : config.hrMail,
-  };
-  const ezlaRecords = await returnEzlaObjs(checker);
+  const ezlaResults = objFromCSV.map((el) => ezla.safeParse(el));
+  const ezlaRecords = ezlaResults.filter((res) => res.success);
+
+  if (ezlaRecords.length !== objFromCSV.length) {
+    console.error(
+      `[ createSickLeaveRecords ] Found records with wrong structure. Sending email to HR team with details`,
+    );
+    const email: GraphEmail = {
+      recipients: [config.hrMail],
+      subject: "eZLA - wrong ezla file structure",
+      bodyHtml: buildErrorEmailBody("ezla"),
+    };
+    await sendEmail(client, config.senderMail, email);
+    throw new Error(
+      "[ returnEzlaObj ] Couldn't find one of rows: PESEL | Status zaświadczenia | Data początku niezdolności | Data końca niezdolności | Seria i numer paszportu | Data urodzenia osoby pod opieką",
+    );
+  }
 
   //* GET Xpertis file and check structure
   const xpertisFile = folderChildren.find((x) => x.name?.includes(config.xpertisFileName));
@@ -122,12 +131,20 @@ export async function createSickLeaveRecords() {
   const xpertisCsvString = XLSX.utils.sheet_to_csv(xpertisSheet);
 
   const xpertisRawObj = await CsvToJson({ delimiter: "auto" }).fromString(xpertisCsvString);
-  const xpertisChecker: EzlaChecker = {
-    array: xpertisRawObj,
-    client: client,
-    receiverMail: config.hrMail,
-  };
-  const xpertisRecords = await returnXpertisObjs(xpertisChecker);
+  const xpertisResults = xpertisRawObj.map((el) => xpertis.safeParse(el));
+  const xpertisRecords = xpertisResults.filter((res) => res.success);
+
+  if (xpertisRecords.length !== xpertisRawObj.length) {
+    const email: GraphEmail = {
+      recipients: [config.hrMail],
+      subject: "eZLA - wrong ezla file structure",
+      bodyHtml: buildErrorEmailBody("xpertis"),
+    };
+    await sendEmail(client, config.senderMail, email);
+    throw new Error(
+      "[ createSickLeaveRecords ] Xpertis file contain rows with wrong structure. Please check the file and try again",
+    );
+  }
 
   //* GET Asistar file and check the structure
   const asistarFile = folderChildren.find((x) => x.name?.includes(config.asistarFileName));
@@ -155,19 +172,27 @@ export async function createSickLeaveRecords() {
   const asistarCsvString = XLSX.utils.sheet_to_csv(asistarSheet);
 
   const asistarRawObj = await CsvToJson({ delimiter: "auto" }).fromString(asistarCsvString);
-  const assistarChecker: EzlaChecker = {
-    array: asistarRawObj,
-    client: client,
-    receiverMail: config.hrMail,
-  };
-  const asistarRecords = await returnAsistarObjs(assistarChecker);
+  const asistarResults = asistarRawObj.map((el) => asistar.safeParse(el));
+  const asistarRecords = asistarResults.filter((res) => res.success);
+
+  if (asistarRecords.length !== asistarRawObj.length) {
+    const email: GraphEmail = {
+      recipients: [config.hrMail],
+      subject: "eZLA - wrong ezla file structure",
+      bodyHtml: buildErrorEmailBody("asistar"),
+    };
+    await sendEmail(client, config.senderMail, email);
+    throw new Error(
+      "[ returnAsistarObjs ] Asistar file contain rows with wrong structure. Please check the file and try again",
+    );
+  }
 
   //* create SickLeave records
   console.log(`[ createSickLeaveRecords ] creating SickLeave records`);
   const { fullRecords, incompleteRecords, newHires } = tryCombineRecords(
-    ezlaRecords,
-    xpertisRecords,
-    asistarRecords,
+    ezlaRecords.map((el) => el.data),
+    xpertisRecords.map((el) => el.data),
+    asistarRecords.map((el) => el.data),
   );
 
   //* inform HR about incomplete records
