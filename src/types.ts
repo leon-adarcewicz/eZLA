@@ -1,4 +1,3 @@
-import { Client } from "@microsoft/microsoft-graph-client";
 import { z } from "zod";
 import type { Email } from "./ms_graphAPI/types";
 import { isCaregiverLeave } from "./utils";
