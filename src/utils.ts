@@ -13,13 +13,12 @@ import { type GraphEmail } from "./ms_graphAPI/types";
 import { sendEmail } from "./ms_graphAPI/email_svc";
 import { config } from "./config";
 
-export function returnConfirmedEnv(env: string | undefined, envName: string): string {
-  console.info("[ returnConfirmedEnv ] function started");
-
+export function returnConfirmedEnv(envName: string): string {
+  const env = process.env[envName];
   if (env) {
     return env;
   } else {
-    throw new Error(`[ returnConfirmedEnv ] couldn't return string for: ${envName}`);
+    throw new Error(`Couldn't find env variable: ${envName}`);
   }
 }
 

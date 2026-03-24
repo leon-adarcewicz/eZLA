@@ -103,14 +103,13 @@ export async function putStats(
   console.log("[ putStats ] preparing record");
 
   const date = dayjs();
-  const YEAR_MONTH = "YYYY-MM";
 
   const input: PutItemInput = {
     TableName: tableName,
     Item: {
       PK: { S: id },
       SK: { S: requestName },
-      GSIPK: { S: date.format(YEAR_MONTH) },
+      GSIPK: { S: date.format(config.statsDateFormat) },
       GSISK: { S: requestName },
       Date: { S: date.toISOString() },
       Time: { S: savedTime },
