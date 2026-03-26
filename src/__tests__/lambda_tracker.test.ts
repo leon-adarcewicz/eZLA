@@ -6,14 +6,22 @@ jest.mock("../aws/dynamo_svc", () => ({
   isAwsDynamoError: jest.fn(),
 }));
 
+jest.mock("../utils", () => ({
+  returnConfirmedEnv: jest.fn(),
+}));
+
 import { pushMsgToDynamo } from "../lambda_tracker";
 import { dbPushSickLeave, InitializeAWSDynamoClient, isAwsDynamoError } from "../aws/dynamo_svc";
+import { returnConfirmedEnv } from "../utils";
 
 const mockedDbPushSickLeave = dbPushSickLeave as jest.MockedFunction<typeof dbPushSickLeave>;
 const mockedInitializeAwsDynamoClient = InitializeAWSDynamoClient as jest.MockedFunction<
   typeof InitializeAWSDynamoClient
 >;
 const mockedIsAwsDynamoError = isAwsDynamoError as jest.MockedFunction<typeof isAwsDynamoError>;
+const mockedReturnConfirmedEnv = returnConfirmedEnv as jest.MockedFunction<
+  typeof returnConfirmedEnv
+>;
 
 describe("pushMsgToDynamo", () => {
   beforeEach(() => {
@@ -43,6 +51,7 @@ describe("pushMsgToDynamo", () => {
   it("should push records successfully when dbPushSickLeave resolves", async () => {
     const fakeClient = { send: jest.fn() };
     mockedInitializeAwsDynamoClient.mockReturnValue(fakeClient as any);
+    mockedReturnConfirmedEnv.mockReturnValue("test-dynamo-table");
     mockedDbPushSickLeave.mockResolvedValue(undefined);
 
     const event: SQSEvent = {
@@ -64,17 +73,19 @@ describe("pushMsgToDynamo", () => {
     await expect(pushMsgToDynamo(event)).resolves.toBeUndefined();
 
     expect(mockedInitializeAwsDynamoClient).toHaveBeenCalledTimes(1);
+    expect(mockedReturnConfirmedEnv).toHaveBeenCalledWith("DYNAMO_TABLE");
     expect(mockedDbPushSickLeave).toHaveBeenCalledTimes(1);
     expect(mockedDbPushSickLeave).toHaveBeenCalledWith(
       expect.any(String),
       sampleRecord,
       fakeClient,
-      undefined,
+      "test-dynamo-table",
     );
   });
 
   it("should throw a combined error when one push rejects with AWS error", async () => {
     mockedInitializeAwsDynamoClient.mockReturnValue({} as any);
+    mockedReturnConfirmedEnv.mockReturnValue("error-table");
 
     const awsError = { name: "TestDynamoError", message: "boom" };
     mockedDbPushSickLeave.mockRejectedValue(JSON.stringify(awsError));
@@ -100,11 +111,13 @@ describe("pushMsgToDynamo", () => {
       '{"name":"TestDynamoError","message":"boom"}',
     );
 
+    expect(mockedReturnConfirmedEnv).toHaveBeenCalledWith("DYNAMO_TABLE");
     expect(mockedIsAwsDynamoError).toHaveBeenCalledWith(awsError);
   });
 
   it("should throw a combined error when one push rejects with non-AWS error", async () => {
     mockedInitializeAwsDynamoClient.mockReturnValue({} as any);
+    mockedReturnConfirmedEnv.mockReturnValue("error-table");
 
     const nonAwsReason = { code: 500, info: "server-failure" };
     mockedDbPushSickLeave.mockRejectedValue(JSON.stringify(nonAwsReason));
@@ -128,6 +141,7 @@ describe("pushMsgToDynamo", () => {
 
     await expect(pushMsgToDynamo(event)).rejects.toThrow('{"code":500,"info":"server-failure"}');
 
+    expect(mockedReturnConfirmedEnv).toHaveBeenCalledWith("DYNAMO_TABLE");
     expect(mockedIsAwsDynamoError).toHaveBeenCalledWith(nonAwsReason);
   });
 });

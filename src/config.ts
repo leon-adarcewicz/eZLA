@@ -33,7 +33,7 @@ export const config: Config = {
   // AWS
   sqsUrl: returnConfirmedEnv("SQS_URL"),
   region: returnConfirmedEnv("AWS_REGION"),
-  dynamoEndpoint: returnConfirmedEnv("AWS_DYNAMO_ENDPOINT"),
+  dynamoEndpoint: returnConfirmedEnv("DYNAMO_ENDPOINT"),
   // AZURE
   clientId: returnConfirmedEnv("AZURE_APP_CLIENT_ID"),
   clientSecret: returnConfirmedEnv("AZURE_CLIENT_SECRET"),
