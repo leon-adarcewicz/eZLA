@@ -69,9 +69,9 @@ export async function createSickLeaveRecords() {
     console.warn("[ createSickLeaveRecords ] No data to process. Closing process");
     return "No data to process. Closing process";
   }
-  if (!ezlaFile.name || !ezlaFile.id) {
+  if (!ezlaFile.name || !ezlaFile.id)
     throw new Error("[ createSickLeaveRecords ] Found ezla file with missing name or ID");
-  }
+
   const ezlaBuffer = await getFileContent(client, driveId, ezlaFile.id);
   const csvString = Buffer.from(ezlaBuffer).toString();
   const objFromCSV = await CsvToJson({ delimiter: "auto" }).fromString(csvString);
@@ -226,48 +226,3 @@ MGS-CI team`,
 
   console.log("[ createSickLeaveRecords ] files has been moved");
 }
-
-// export async function sendMsgToTl (ev: DynamoDBStreamEvent) {
-//     console.log(`[ sendMsgToTl ] Sending message to TL`);
-//     console.log(ev)
-
-//     if(ev.Records.length !== 1) throw new Error(`[ sendMsgToTl ] expected to receive 1 DynamoDb records, but got ${ev.Records.length}`)
-
-//     const streamRecord = ev.Records[0]
-//     //  finish Lambda execution if the event is not INSERT new item
-//     if(streamRecord.eventName !== "INSERT") {
-//         console.warn(`[ sendMsgToTl ] It's not the INSERT event. Finishing the function`);
-//         return "OK"
-//     }
-
-//     const environment = process.env.ENV!
-//     const graphClient = await getGraphClientSvc();
-
-//     const dbClient = InitializeAWSDynamoClient();
-
-//     console.log("[ sendMsgToTl ] pulling record from DynamoDB");
-//     const arn = streamRecord.eventSourceARN!
-//     const tableName = returnTableName(arn)
-//     const pk = streamRecord.dynamodb?.Keys?.pk.S!
-
-//     const dynamoRecord = await getRecordByPk(pk, tableName, dbClient)
-
-//     console.log("[ sendMsgToTl ] extracting SickLeaves and sending messages");
-//     const sl = SickLeaveByTL.parse(unmarshall(dynamoRecord.Item!).data)
-
-//     const email: GraphEmail = {
-//         recipients: environment === "prod" ? [sl.mail,HR_MAIL] : [ONE_STOP_MAIL],
-//         subject: "eZLA - team sick leaves",
-//         bodyHtml: `Dear ${sl.firstName},<br /><br />Please find the list of your team members sick leaves:<br /><br />${generateTable(sl.team)}<br/><br />Best regards,<br />Local HR Team`
-//     }
-
-//     await sendEmail(graphClient, ONE_STOP_MAIL, email)
-//     console.log("[ sendMsgToTl ] all messages sent successfully");
-
-//     //* SAVE statistics
-//     const statsTable = process.env.STATS_TABLE_NAME!;
-//     const requestName = "eZLA";
-
-//     await putStats(statsTable, pk, requestName, dbClient, SAVED_TIME)
-//     console.log("[ sendMsgToTl ] stats pushed")
-// }
