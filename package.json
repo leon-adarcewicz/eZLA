@@ -32,6 +32,7 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1014.0",
     "@aws-sdk/client-sqs": "^3.1014.0",
+    "@aws-sdk/util-dynamodb": "^3.996.2",
     "@azure/identity": "^4.13.1",
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "@types/aws-lambda": "^8.10.161",

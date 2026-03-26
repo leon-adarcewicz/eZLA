@@ -197,22 +197,6 @@ export function generateEzlaFileName(name: string): string {
   return `eZLA_${Date.now()}${extension}`;
 }
 
-export function returnTableName(arn: string): string {
-  console.log("[ returnTableName ] retrieving table name");
-
-  const startIndex = arn.includes("ProdStack")
-    ? arn.indexOf("ProdStack")
-    : arn.indexOf("QaOneStopStack");
-  const endIndex = arn.indexOf("/stream");
-
-  if (startIndex === -1 || endIndex === -1)
-    throw new Error(
-      `[ returnTableName ] the structure of the ARN is differentiate from expected one: ${arn}`,
-    );
-
-  return arn.substring(startIndex, endIndex);
-}
-
 export function isCaregiverLeave(value: string): "YES" | "NO" {
   if (typeof value === "string") {
     const valueNoSpaces = value.replaceAll(" ", "");

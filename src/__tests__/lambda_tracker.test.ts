@@ -6,7 +6,7 @@ jest.mock("../aws/dynamo_svc", () => ({
   isAwsDynamoError: jest.fn(),
 }));
 
-import { pushMsgToDynamo } from "../tracker";
+import { pushMsgToDynamo } from "../lambda_tracker";
 import { dbPushSickLeave, InitializeAWSDynamoClient, isAwsDynamoError } from "../aws/dynamo_svc";
 
 const mockedDbPushSickLeave = dbPushSickLeave as jest.MockedFunction<typeof dbPushSickLeave>;
