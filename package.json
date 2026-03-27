@@ -4,8 +4,9 @@
   "description": "Backend process automation to deliver information about employees sick leaves. Hosted in AWS and uses Microsoft Graph API to fetch data about employees and their sick leaves from SharePoint site.",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
-    "dev": "tsx src/index.ts"
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "jest"
   },
   "repository": {
     "type": "git",

@@ -10,7 +10,14 @@ import * as destinations from "aws-cdk-lib/aws-lambda-destinations";
 import * as events from "aws-cdk-lib/aws-events";
 import * as evTargets from "aws-cdk-lib/aws-events-targets";
 import * as lambdaESs from "aws-cdk-lib/aws-lambda-event-sources";
+import * as ecr from "aws-cdk-lib/aws-ecr";
 import { config } from "../../src/config";
+
+export type EnvPrefix = "PROD" | "QA";
+
+export interface SelfStackProps extends cdk.StackProps {
+  envPrefix: EnvPrefix;
+}
 
 export class InfraStack extends cdk.Stack {
   private readonly ezlaTableName = "ezla";
@@ -19,10 +26,10 @@ export class InfraStack extends cdk.Stack {
   // to receive notifications about process failures
   private readonly devTeam = [];
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: SelfStackProps) {
     super(scope, id, props);
 
-    // SECRETS
+    //* SECRETS
     const azureTenant = new cdk.aws_secretsmanager.Secret(this, "AzureTenant", {
       secretName: "AzureTenant",
       description: "Azure Tenant ID for eZLA project",
@@ -85,6 +92,44 @@ export class InfraStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+    //* ECR
+    const ecrLifecycleRules: ecr.LifecycleRule[] = [
+      {
+        rulePriority: 1,
+        description: "Prevent deletion of the image tagged as 'latest'",
+        tagPrefixList: ["latest"],
+        tagStatus: ecr.TagStatus.TAGGED,
+        maxImageCount: 1,
+      },
+      {
+        rulePriority: 2,
+        description: "Retain only the 5 most recent images",
+        tagStatus: ecr.TagStatus.ANY, // Applies to all images
+        maxImageCount: 5, // Retain the 5 most recent images
+      },
+    ];
+
+    const mainLambdaRepo = new ecr.Repository(this, "MainLambdaRepo", {
+      imageScanOnPush: true,
+      repositoryName: "main-lambda-repo",
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      lifecycleRules: ecrLifecycleRules,
+    });
+
+    const trackerLambdaRepo = new ecr.Repository(this, "TrackerLambdaRepo", {
+      imageScanOnPush: true,
+      repositoryName: "tracker-lambda-repo",
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      lifecycleRules: ecrLifecycleRules,
+    });
+
+    const finalLambdaRepo = new ecr.Repository(this, "FinalLambdaRepo", {
+      imageScanOnPush: true,
+      repositoryName: "final-lambda-repo",
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      lifecycleRules: ecrLifecycleRules,
+    });
+
     //* create SNS topics to inform team about process failures
     const ezlaDlqTopic = new sns.Topic(this, "ezlaDlqTopic", {
       masterKey: snsKey,
@@ -116,8 +161,10 @@ export class InfraStack extends cdk.Stack {
       functionName: "eZLA_main",
       timeout: cdk.Duration.minutes(1),
       retryAttempts: 0,
-      code: lambda.Code.fromBucket(lambdasBucket, "dist.zip"),
-      handler: "ezla.createSickLeaveRecords",
+      code: lambda.Code.fromEcrImage(mainLambdaRepo, {
+        cmd: ["./dist/lambda_main.createSickLeaveRecords"],
+      }),
+      handler: lambda.Handler.FROM_IMAGE,
       description:
         "main eZLA Lambda function to pull data from SharePoint, process it and save to DynamoDB",
       runtime: lambda.Runtime.NODEJS_22_X,
@@ -163,8 +210,10 @@ export class InfraStack extends cdk.Stack {
       memorySize: 256,
       timeout: cdk.Duration.minutes(1),
       retryAttempts: 0,
-      code: lambda.Code.fromBucket(lambdasBucket, "dist.zip"),
-      handler: "ezla.pushMsgToDynamo",
+      code: lambda.Code.fromEcrImage(trackerLambdaRepo, {
+        cmd: ["./dist/lambda_tracker.pushSickLeaveToDynamo"],
+      }),
+      handler: lambda.Handler.FROM_IMAGE,
       description: "Get msg from sqs and try push it to Dynamo",
       runtime: lambda.Runtime.NODEJS_20_X,
       environment: {
@@ -183,18 +232,24 @@ export class InfraStack extends cdk.Stack {
       memorySize: 256,
       timeout: cdk.Duration.minutes(2),
       retryAttempts: 0,
-      code: lambda.Code.fromBucket(lambdasBucket, "dist.zip"),
-      handler: "ezla.sendMsgToTl",
+      code: lambda.Code.fromEcrImage(finalLambdaRepo, {
+        cmd: ["./dist/lambda_final.sendMsgToTl"],
+      }),
+      handler: lambda.Handler.FROM_IMAGE,
       description: "Send message to TLs about Sick Leaves",
       runtime: lambda.Runtime.NODEJS_20_X,
       reservedConcurrentExecutions: 1,
       environment: {
-        // ENV: props.RUNNING_ENV,
-        // EZLA_SNS_DLQ_URL: ezlaDlqTopic.topicArn,
-        // ONE_STOP_AZURE_TENANT: azureTenant.secretName,
-        // ONE_STOP_AZURE_APP_ID: azureAppId.secretName,
-        // ONE_STOP_AZURE_SECRET: azureAppSecret.secretName,
-        // STATS_TABLE_NAME: genericStatsTable.tableName,
+        ENV: props.envPrefix,
+        RECORDS_TABLE_NAME: ezlaTable.tableName,
+        STATS_TABLE_NAME: genericStatsTable.tableName,
+        HR_MAIL: config.hrMail,
+        SENDER_MAIL: config.senderMail,
+        AZURE_APP_CLIENT_ID: azureAppId.secretValue.toString(), // secret going to be stored when CDK is deployed. OK for this use case
+        AZURE_CLIENT_SECRET: azureAppSecret.secretValue.toString(),
+        AZURE_TENANT_ID: azureTenant.secretValue.toString(),
+        AWS_REGION: this.region,
+        DYNAMO_ENDPOINT: `https://dynamodb.${this.region}.amazonaws.com`,
       },
     });
     ezlaTable.grantReadWriteData(ezlaFinal);
