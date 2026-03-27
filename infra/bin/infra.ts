@@ -1,20 +1,27 @@
 #!/usr/bin/env node
-import * as cdk from 'aws-cdk-lib';
-import { InfraStack } from '../lib/infra-stack';
+import * as cdk from "aws-cdk-lib";
+import { InfraStack } from "../lib/infra-stack";
 
 const app = new cdk.App();
-new InfraStack(app, 'InfraStack', {
-  /* If you don't specify 'env', this stack will be environment-agnostic.
-   * Account/Region-dependent features and context lookups will not work,
-   * but a single synthesized template can be deployed anywhere. */
 
-  /* Uncomment the next line to specialize this stack for the AWS Account
-   * and Region that are implied by the current CLI configuration. */
-  // env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
-
-  /* Uncomment the next line if you know exactly what Account and Region you
-   * want to deploy the stack to. */
-  // env: { account: '123456789012', region: 'us-east-1' },
-
-  /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
+const qaEvn = {
+  account: process.env.AWS_ACCOUNT_ID,
+  region: process.env.AWS_REGION,
+};
+const qaStack = new InfraStack(app, "InfraStack", {
+  env: qaEvn,
+  envPrefix: "QA",
 });
+cdk.Tags.of(qaStack).add("environment", "qa");
+cdk.Tags.of(qaStack).add("process", "eZLA");
+
+const prodEvn = {
+  account: process.env.AWS_ACCOUNT_ID,
+  region: "us-east-1",
+};
+const prodStack = new InfraStack(app, "InfraStack", {
+  env: prodEvn,
+  envPrefix: "PROD",
+});
+cdk.Tags.of(prodStack).add("environment", "prod");
+cdk.Tags.of(prodStack).add("process", "eZLA");

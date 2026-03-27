@@ -3,7 +3,9 @@ import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { config } from "../config";
 
 jest.mock("@aws-sdk/client-dynamodb");
-jest.mock("../config");
+jest.mock("../utils", () => ({
+  returnConfirmedEnv: jest.fn(),
+}));
 
 describe("isAwsDynamoError", () => {
   it("returns true for object with both name and message properties", () => {
