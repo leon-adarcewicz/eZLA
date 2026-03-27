@@ -2,12 +2,13 @@ import { dbPushSickLeave, InitializeAWSDynamoClient, isAwsDynamoError } from "./
 import { SQSEvent } from "aws-lambda";
 import { SickLeaveByTL } from "./types";
 import { createHash } from "node:crypto";
+import { returnConfirmedEnv } from "./utils";
 
 export async function pushMsgToDynamo(ev: SQSEvent) {
   console.log("[ pushMsgToDynamo ] Got messages from SQS. Preparing to push to DynamoDB");
 
   const dbClient = InitializeAWSDynamoClient();
-  const tableName = process.env.DYNAMO_TABLE!;
+  const tableName = returnConfirmedEnv("DYNAMO_TABLE");
 
   console.log("[ pushMsgToDynamo ] putting records to DynamoDB");
   const dynamoPutPromises = ev.Records.map((msg) => {

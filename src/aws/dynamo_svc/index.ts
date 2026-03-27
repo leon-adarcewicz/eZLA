@@ -27,7 +27,7 @@ export function InitializeAWSDynamoClient(): DynamoDBClient {
   const client = new DynamoDBClient({
     region: config.region,
     apiVersion: "2012-08-10",
-    endpoint: config.dynamoEndpoint,
+    endpoint: config.dynamoEndpoint, //! config can't be used here. To much secrets should be logged unnecessarily
   });
 
   return client;
