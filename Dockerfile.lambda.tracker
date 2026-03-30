@@ -16,4 +16,4 @@ COPY . ${LAMBDA_TASK_ROOT}/
 
 RUN npm run build
 
-CMD [ "./dist/lambda_tracker.pushSickLeaveToDynamo"]
+CMD [ "./dist/lambda_tracker.pushMsgToDynamo"]

@@ -206,12 +206,12 @@ export class InfraStack extends cdk.Stack {
     });
     scheduleCallEzla.addTarget(new evTargets.LambdaFunction(ezlaMain, { retryAttempts: 0 }));
 
-    const ezlaTracker = new lambda.Function(this, "EzlaPushSickLeaveToDynamo", {
+    const ezlaTracker = new lambda.Function(this, "EzlaPushMsgToDynamo", {
       memorySize: 256,
       timeout: cdk.Duration.minutes(1),
       retryAttempts: 0,
       code: lambda.Code.fromEcrImage(trackerLambdaRepo, {
-        cmd: ["./dist/lambda_tracker.pushSickLeaveToDynamo"],
+        cmd: ["./dist/lambda_tracker.pushMsgToDynamo"],
       }),
       handler: lambda.Handler.FROM_IMAGE,
       description: "Get msg from sqs and try push it to Dynamo",

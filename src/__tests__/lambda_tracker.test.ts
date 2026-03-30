@@ -88,7 +88,7 @@ describe("pushMsgToDynamo", () => {
     mockedReturnConfirmedEnv.mockReturnValue("error-table");
 
     const awsError = { name: "TestDynamoError", message: "boom" };
-    mockedDbPushSickLeave.mockRejectedValue(JSON.stringify(awsError));
+    mockedDbPushSickLeave.mockRejectedValue(new Error(JSON.stringify(awsError)));
     mockedIsAwsDynamoError.mockReturnValue(true);
 
     const event: SQSEvent = {
@@ -120,7 +120,7 @@ describe("pushMsgToDynamo", () => {
     mockedReturnConfirmedEnv.mockReturnValue("error-table");
 
     const nonAwsReason = { code: 500, info: "server-failure" };
-    mockedDbPushSickLeave.mockRejectedValue(JSON.stringify(nonAwsReason));
+    mockedDbPushSickLeave.mockRejectedValue(new Error(JSON.stringify(nonAwsReason)));
     mockedIsAwsDynamoError.mockReturnValue(false);
 
     const event: SQSEvent = {

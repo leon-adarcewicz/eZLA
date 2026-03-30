@@ -28,7 +28,7 @@ export async function pushMsgToDynamo(ev: SQSEvent) {
   if (errors.length > 0) {
     console.warn(`[ pushMsgToDynamo ] got ${errors.length} errors. Preparing error message`);
     const allErrorsStringify = errors.map((error) => {
-      const reason = JSON.parse((error as any).reason);
+      const reason = JSON.parse((error as PromiseRejectedResult).reason.message);
 
       if (isAwsDynamoError(reason)) {
         const awsErr = {
