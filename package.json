@@ -22,11 +22,11 @@
   "homepage": "https://github.com/leon-adarcewicz/eZLA#readme",
   "devDependencies": {
     "@microsoft/microsoft-graph-types": "^2.43.1",
+    "@types/aws-lambda": "^8.10.161",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.5.0",
     "jest": "^30.3.0",
     "ts-jest": "^29.4.6",
-    "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
@@ -36,11 +36,9 @@
     "@aws-sdk/util-dynamodb": "^3.996.2",
     "@azure/identity": "^4.13.1",
     "@microsoft/microsoft-graph-client": "^3.0.7",
-    "@types/aws-lambda": "^8.10.161",
     "csvtojson": "^2.0.14",
     "dayjs": "^1.11.20",
     "dotenv": "^17.3.1",
-    "object-hash": "^3.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.3.6"
   }

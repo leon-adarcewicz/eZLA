@@ -1,0 +1,30 @@
+repos:
+  - repo: https://github.com/gitguardian/ggshield
+    rev: v1.48.0
+    hooks:
+      - id: ggshield
+        language_version: python3
+        stages: [pre-commit]
+
+  - repo: local
+    hooks:
+      - id: check-unused-dependencies
+        name: Check for unused dependencies
+        entry: npx depcheck
+        language: node
+        types: [javascript, jsx, ts, tsx]
+        stages: [pre-commit]
+
+      - id: run-unit-tests
+        name: Run unit tests
+        entry: npm test
+        language: node
+        types: [javascript, jsx, ts, tsx]
+        stages: [pre-commit]
+
+      - id: build-project
+        name: Build project
+        entry: npm run build
+        language: node
+        types: [javascript, jsx, ts, tsx]
+        stages: [pre-commit]
