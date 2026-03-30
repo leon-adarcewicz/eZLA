@@ -1,5 +1,6 @@
 import { Client, ResponseType } from "@microsoft/microsoft-graph-client";
 import type { BaseItem, DriveItem } from "@microsoft/microsoft-graph-types";
+import { graphListChildren } from ".";
 
 export async function graphGetItem(client: Client, driveId: string, itemId: string) {
   console.info(`[ graphGetDocument ] getting document with GraphAPI`);
@@ -7,12 +8,6 @@ export async function graphGetItem(client: Client, driveId: string, itemId: stri
     .api(`drives/${driveId}/items/${itemId}/content`)
     .responseType(ResponseType.ARRAYBUFFER)
     .get()) as ArrayBuffer;
-}
-
-export async function graphListChildren(client: Client, driveId: string, parentId: string) {
-  console.info(`[ graphListChildren ] getting children of folder with ID: ${parentId}`);
-  const resp = await client.api(`/drives/${driveId}/items/${parentId}/children`).get();
-  return resp.value as DriveItem[];
 }
 
 export async function graphMoveItem(

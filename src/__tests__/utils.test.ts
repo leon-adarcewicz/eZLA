@@ -2,7 +2,7 @@ import {
   buildErrorEmailBody,
   checkIfNoRestrictedChars,
   generateEzlaFileName,
-  generateHewHireTable,
+  generateNewHireTable,
   isCaregiverLeave,
   returnConfirmedEnv,
   tryCombineRecords,
@@ -288,7 +288,7 @@ describe("tryCombineRecords", () => {
   });
 });
 
-describe("generateHewHireTable", () => {
+describe("generateNewHireTable", () => {
   it("generates table with multiple rows for multiple EZLA records", () => {
     const ezlaList: EZLA[] = [
       {
@@ -308,7 +308,7 @@ describe("generateHewHireTable", () => {
         caregiverLeave: "YES",
       },
     ];
-    const result = generateHewHireTable(ezlaList);
+    const result = generateNewHireTable(ezlaList);
     expect(result).toMatchSnapshot();
   });
 });

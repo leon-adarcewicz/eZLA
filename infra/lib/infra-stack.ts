@@ -215,7 +215,7 @@ export class InfraStack extends cdk.Stack {
       }),
       handler: lambda.Handler.FROM_IMAGE,
       description: "Get msg from sqs and try push it to Dynamo",
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       environment: {
         AWS_REGION: this.region,
         DYNAMO_TABLE: ezlaTable.tableName,
@@ -237,7 +237,7 @@ export class InfraStack extends cdk.Stack {
       }),
       handler: lambda.Handler.FROM_IMAGE,
       description: "Send message to TLs about Sick Leaves",
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       reservedConcurrentExecutions: 1,
       environment: {
         ENV: props.envPrefix,

@@ -1,12 +1,7 @@
 import type { Client } from "@microsoft/microsoft-graph-client";
 import type { DriveItem } from "@microsoft/microsoft-graph-types";
 import { GraphApiError } from "./types";
-
-export async function graphListChildren(client: Client, driveId: string, parentId: string) {
-  console.info(`[ graphListChildren ] getting children of folder with ID: ${parentId}`);
-  const resp = await client.api(`/drives/${driveId}/items/${parentId}/children`).get();
-  return resp.value as DriveItem[];
-}
+import { graphListChildren } from ".";
 
 export async function graphCreateFolder(
   client: Client,

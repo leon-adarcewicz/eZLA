@@ -8,7 +8,7 @@ async function setup_(_globalConfig: any, _: any) {
   process.env.HR_MAIL = "hr@example.com";
   process.env.SQS_URL = "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue";
   process.env.AWS_REGION = "us-east-1";
-  process.env.AWS_DYNAMO_ENDPOINT = "http://localhost:8000";
+  process.env.DYNAMO_ENDPOINT = "http://localhost:8000";
   process.env.AZURE_APP_CLIENT_ID = "test-client-id";
   process.env.AZURE_CLIENT_SECRET = "test-client-secret";
   process.env.AZURE_TENANT_ID = "test-tenant-id";
