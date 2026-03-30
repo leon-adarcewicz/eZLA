@@ -12,19 +12,22 @@ repos:
         name: Check for unused dependencies
         entry: npx depcheck
         language: node
-        types: [javascript, jsx, ts, tsx]
+        types_or: [javascript, jsx, ts, tsx]
+        pass_filenames: false
         stages: [pre-commit]
 
       - id: run-unit-tests
         name: Run unit tests
         entry: npm test
         language: node
-        types: [javascript, jsx, ts, tsx]
+        types_or: [javascript, jsx, ts, tsx]
+        pass_filenames: false
         stages: [pre-commit]
 
       - id: build-project
         name: Build project
         entry: npm run build
         language: node
-        types: [javascript, jsx, ts, tsx]
+        types_or: [javascript, jsx, ts, tsx]
+        pass_filenames: false
         stages: [pre-commit]
