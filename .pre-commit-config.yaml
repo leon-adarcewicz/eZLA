@@ -28,6 +28,6 @@ repos:
         name: Build project
         entry: npm run build
         language: node
-        types_or: [javascript, jsx, ts, tsx]
+        types_or: [javascript, jsx, ts, tsx, json]
         pass_filenames: false
         stages: [pre-commit]
