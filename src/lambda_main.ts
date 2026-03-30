@@ -7,7 +7,7 @@ import {
   groupByPdmAndSortByLastName,
   generateTable,
   generateEzlaFileName,
-  generateHewHireTable,
+  generateNewHireTable,
   checkIfNoRestrictedChars,
   buildErrorEmailBody,
 } from "./utils";
@@ -198,7 +198,7 @@ export async function createSickLeaveRecords() {
       bodyHtml: `Dear team,
             <br /><br />
 ${incompleteRecords.length > 0 && "Please check the records mentioned below and update data or process theme manually:<br /><br />" + generateTable(incompleteRecords) + "<br /><br />"}
-${newHires.length > 0 && "Please update Xpertis file. PUE report contain record/s with pesel/passport ID that we couldn't find into Xpertis file:<br /><br />" + generateHewHireTable(newHires) + "<br /><br />"}
+${newHires.length > 0 && "Please update Xpertis file. PUE report contain record/s with pesel/passport ID that we couldn't find into Xpertis file:<br /><br />" + generateNewHireTable(newHires) + "<br /><br />"}
 
 Best regards,<br />
 MGS-CI team`,

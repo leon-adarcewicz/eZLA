@@ -1,7 +1,7 @@
 import { ClientSecretCredential } from "@azure/identity";
 import { TokenCredentialAuthenticationProvider } from "@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials";
 import { Client } from "@microsoft/microsoft-graph-client";
-import type { Drive, Site } from "@microsoft/microsoft-graph-types";
+import type { Drive, DriveItem, Site } from "@microsoft/microsoft-graph-types";
 import { GraphApiError } from "./types";
 import { config } from "../config";
 
@@ -40,4 +40,10 @@ export async function getGraphClient() {
   });
 
   return Client.initWithMiddleware({ authProvider });
+}
+
+export async function graphListChildren(client: Client, driveId: string, parentId: string) {
+  console.info(`[ graphListChildren ] getting children of folder with ID: ${parentId}`);
+  const resp = await client.api(`/drives/${driveId}/items/${parentId}/children`).get();
+  return resp.value as DriveItem[];
 }

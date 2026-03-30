@@ -84,12 +84,12 @@ export function tryCombineRecords(
         firstName: asistarRecord.firstName,
         lastName: asistarRecord.lastName,
         mail: asistarRecord.mail,
-        startDate: structuredClone(obj.startDate),
-        endDate: structuredClone(obj.endDate),
+        startDate: obj.startDate,
+        endDate: obj.endDate,
         pdmMail: asistarPDM.mail,
         pdmFirstName: asistarPDM.firstName,
         pdmLastName: asistarPDM.lastName,
-        caregiverLeave: structuredClone(obj.caregiverLeave),
+        caregiverLeave: obj.caregiverLeave,
       };
       fullRecords.push(record);
     } else if (asistarRecord && xpertisObj?.fmno) {
@@ -101,12 +101,12 @@ export function tryCombineRecords(
         firstName: asistarRecord.firstName,
         lastName: asistarRecord.lastName,
         mail: asistarRecord.mail,
-        startDate: structuredClone(obj.startDate),
-        endDate: structuredClone(obj.endDate),
+        startDate: obj.startDate,
+        endDate: obj.endDate,
         pdmMail: undefined,
         pdmFirstName: undefined,
         pdmLastName: undefined,
-        caregiverLeave: structuredClone(obj.caregiverLeave),
+        caregiverLeave: obj.caregiverLeave,
       };
       incompleteRecords.push(record);
     } else if (xpertisObj?.fmno === undefined) {
@@ -179,7 +179,7 @@ export function generateTable(list: (SickLeaveWithoutTL | SickLeave)[]): string 
   return `<table border="1" cellpadding="5">${tableHeaders + tableBody}</table>`;
 }
 
-export function generateHewHireTable(list: EZLA[]): string {
+export function generateNewHireTable(list: EZLA[]): string {
   const tableHeaders = `<tr style="background-color: #ddd; font-weight: bold"><th>Pesel</th><th>Passport</th></tr>`;
   const tableBody = list
     .map((sl) => `<tr><td>${sl.pesel}</td><td>${sl.passportID}</td></tr>`)

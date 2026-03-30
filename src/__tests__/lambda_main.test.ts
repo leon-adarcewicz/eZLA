@@ -34,7 +34,7 @@ jest.mock("../utils", () => ({
   groupByPdmAndSortByLastName: jest.fn(),
   generateTable: jest.fn(),
   generateEzlaFileName: jest.fn(),
-  generateHewHireTable: jest.fn(),
+  generateNewHireTable: jest.fn(),
   checkIfNoRestrictedChars: jest.fn(),
   buildErrorEmailBody: jest.fn(),
 }));
