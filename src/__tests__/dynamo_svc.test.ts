@@ -110,14 +110,13 @@ describe("dbPushSickLeave", () => {
     expect(mockClient.send).toHaveBeenCalledTimes(1);
   });
 
-  it("should return Error for non-ConditionalCheckFailedException error", async () => {
+  it("should throw Error for non-ConditionalCheckFailedException error", async () => {
     const error = { name: "InternalError", message: "test failure" };
     mockClient.send = jest.fn().mockRejectedValue(error);
 
-    const result = await dbPushSickLeave(hash, sickLeave, mockClient, tableName);
-
-    expect(result).toBeInstanceOf(Error);
-    expect(result?.message).toContain(JSON.stringify(error));
+    await expect(dbPushSickLeave(hash, sickLeave, mockClient, tableName)).rejects.toThrow(
+      JSON.stringify(error),
+    );
     expect(mockClient.send).toHaveBeenCalledTimes(1);
   });
 });

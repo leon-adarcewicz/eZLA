@@ -85,7 +85,7 @@ export async function createSickLeaveRecords() {
     );
     const email: GraphEmail = {
       recipients: [config.hrMail],
-      subject: "eZLA - wrong ezla file structure",
+      subject: "eZLA - wrong eZLA file structure",
       bodyHtml: buildErrorEmailBody("ezla"),
     };
     await sendEmail(client, config.senderMail, email);
@@ -127,7 +127,7 @@ export async function createSickLeaveRecords() {
   if (xpertisRecords.length !== xpertisRawObj.length) {
     const email: GraphEmail = {
       recipients: [config.hrMail],
-      subject: "eZLA - wrong ezla file structure",
+      subject: "eZLA - wrong Xpertis file structure",
       bodyHtml: buildErrorEmailBody("xpertis"),
     };
     await sendEmail(client, config.senderMail, email);
@@ -168,7 +168,7 @@ export async function createSickLeaveRecords() {
   if (asistarRecords.length !== asistarRawObj.length) {
     const email: GraphEmail = {
       recipients: [config.hrMail],
-      subject: "eZLA - wrong ezla file structure",
+      subject: "eZLA - wrong Asistar file structure",
       bodyHtml: buildErrorEmailBody("asistar"),
     };
     await sendEmail(client, config.senderMail, email);

@@ -8,7 +8,7 @@ const qaEvn = {
   account: process.env.AWS_ACCOUNT_ID,
   region: process.env.AWS_REGION,
 };
-const qaStack = new InfraStack(app, "InfraStack", {
+const qaStack = new InfraStack(app, "QAInfraStack", {
   env: qaEvn,
   envPrefix: "QA",
 });
