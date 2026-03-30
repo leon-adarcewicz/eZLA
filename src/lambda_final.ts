@@ -1,4 +1,3 @@
-import { DynamoDBStreamEvent } from "aws-lambda";
 import { getGraphClient } from "./ms_graphAPI";
 import { generateTable, returnConfirmedEnv } from "./utils";
 import { getRecordByPk, InitializeAWSDynamoClient, putStats } from "./aws/dynamo_svc";
@@ -6,6 +5,7 @@ import { SickLeaveByTL } from "./types";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
 import { GraphEmail } from "./ms_graphAPI/types";
 import { sendEmail } from "./ms_graphAPI/email_svc";
+import { DynamoDBStreamEvent } from "aws-lambda";
 
 const SAVED_TIME = "5 minutes";
 const REQUEST_NAME = "eZLA";
