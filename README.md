@@ -16,7 +16,7 @@ Designed and built the entire system solo — architecture, data processing pipe
 
 ## Problem
 
-In Polish companies, medical certificates (eZLA — _elektroniczne Zaświadczenie Lekarskie_) are exported from the PUE ZUS portal as CSV files and stored on SharePoint. HR teams must manually cross-reference these certificates with employee records from two separate systems (Xpertis and Asistar), identify each employee's team leader, and send individual email notifications. This is repetitive, slow, and breaks down when data is incomplete or employees are missing from one of the source files.
+In Polish companies, medical certificates (eZLA — _elektroniczne Zaświadczenie Lekarskie_) are exported from the PUE ZUS portal as CSV files. HR teams must manually cross-reference these certificates with employee records from two separate systems (Xpertis and Asistar), identify each employee's team leader, and send individual email notifications. This is repetitive and slow.
 
 ## Solution
 
