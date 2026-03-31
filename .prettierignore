@@ -1,0 +1,6 @@
+dist/
+coverage/
+node_modules/
+infra/
+package-lock.json
+*.tsbuildinfo

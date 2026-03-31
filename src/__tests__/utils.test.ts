@@ -13,8 +13,6 @@ jest.mock("../ms_graphAPI/email_svc", () => ({
   sendEmail: jest.fn(),
 }));
 
-const mockSendEmail = require("../ms_graphAPI/email_svc").sendEmail;
-
 describe("returnConfirmedEnv", () => {
   const ORIGINAL_ENV = process.env;
 

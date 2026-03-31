@@ -27,6 +27,6 @@ export async function pushSickLeavesToSqs(sickLeaves: SickLeaveByTL[], url: stri
     return res;
   } catch (e) {
     console.error(`[ pushSickLeave ] error while sending sqs: ${e}`);
-    throw new Error(`[ pushSickLeave ] error while sending sqs: ${e}`);
+    throw new Error(`[ pushSickLeave ] error while sending sqs: ${e}`, { cause: e });
   }
 }
