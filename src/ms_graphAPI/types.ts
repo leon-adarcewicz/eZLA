@@ -10,8 +10,8 @@ export type GraphEmail = {
 };
 
 export class GraphApiError extends Error {
-  cause?: any;
-  constructor(message: string, cause?: any) {
+  cause?: unknown;
+  constructor(message: string, cause?: unknown) {
     super(message);
     this.name = "GraphApiError";
     this.cause = cause;

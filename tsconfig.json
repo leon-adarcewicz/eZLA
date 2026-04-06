@@ -10,9 +10,7 @@
     "moduleResolution": "bundler",
     "target": "esnext",
     "esModuleInterop": true,
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -38,13 +36,7 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
-  "exclude": [
-    "node_modules",
-    "jest.config.ts",
-    "src/**/*.test.ts",
-    "infra",
-    "dist"
-  ]
+  "exclude": ["node_modules", "jest.config.ts", "src/**/*.test.ts", "infra", "dist"]
 }

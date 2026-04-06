@@ -8,6 +8,14 @@ repos:
 
   - repo: local
     hooks:
+      - id: lint-and-format
+        name: Lint and format check
+        entry: bash -c 'npm run format:check && npm run lint'
+        language: node
+        types_or: [javascript, jsx, ts, tsx, json]
+        pass_filenames: false
+        stages: [pre-commit]
+
       - id: check-unused-dependencies
         name: Check for unused dependencies
         entry: npx depcheck

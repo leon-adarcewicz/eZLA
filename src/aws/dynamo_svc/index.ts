@@ -85,7 +85,7 @@ export async function dbPushSickLeave(
       console.error(
         `[ pushSickLeave ] ERROR: Couldn't put record to DynamoDB - ${JSON.stringify(err)}`,
       );
-      throw new Error(JSON.stringify(err));
+      throw new Error(JSON.stringify(err), { cause: err });
     }
   }
 }
